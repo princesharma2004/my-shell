@@ -10,32 +10,48 @@
  #include "input.h"
 
 namespace shell {
-    std::tuple<std::string, std::string, std::string> read_input() {
-        std::string command, file;
+    std::string read_input() {
+        std::string command;
 
         std::cout << "$ ";
         std::getline(std::cin, command);
 
-        const auto& [cmd, argsStart] = clean_cmd(command);
-        std::string args = (argsStart+1<command.size())? command.substr(argsStart + 1): "";
+        return command;
+    }
+
+    std::tuple<std::string, std::string, std::string, std::string> break_input(const std::string& input) {
+        std::string outputFile, errorFile;
+
+        const auto& [cmd, argsStart] = clean_cmd(input);
+        std::string args = (argsStart+1<input.size())? input.substr(argsStart + 1): "";
+
+        if (size_t pos; (pos = args.find("2>")) != std::string::npos) {
+            errorFile = args.substr(pos + 2);
+            if (!errorFile.empty() && errorFile[0] == ' ') {
+                errorFile.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
 
         if (size_t pos; (pos = args.find("1>")) != std::string::npos) {
-            file = args.substr(pos + 2);
-            if (!file.empty() && file[0] == ' ') {
-                file.erase(0, 1);
+            outputFile = args.substr(pos + 2);
+            if (!outputFile.empty() && outputFile[0] == ' ') {
+                outputFile.erase(0, 1);
             }
 
             args = args.substr(0, pos);
         }
-        else if ((pos = args.find('>')) != std::string::npos) {
-            file = args.substr(pos + 1);
-            if (!file.empty() && file[0] == ' ') {
-                file.erase(0, 1);
+
+        if (size_t pos; (pos = args.find('>')) != std::string::npos) {
+            outputFile = args.substr(pos + 1);
+            if (!outputFile.empty() && outputFile[0] == ' ') {
+                outputFile.erase(0, 1);
             }
 
             args = args.substr(0, pos);
         }
-        return {cmd, args, file};
+        return {cmd, args, outputFile, errorFile};
     }
 
     std::string clean_args(const std::string& input) {

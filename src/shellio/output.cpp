@@ -10,14 +10,13 @@
  #include "output.h"
 
 namespace shell {
-    std::string echo(const std::string& args) {
-        std::stringstream output;
+    std::pair<std::string, std::string> echo(const std::string &args) {
+        std::stringstream output, error;
         output << args << "\n";
-        return output.str();
+        return std::make_pair(output.str(), error.str());
     }
 
-    std::string not_found(const std::string& cmd, const std::string& args) {
-        std::stringstream output;
+    void not_found(const std::string &cmd, const std::string &input) {
         bool foundAny = false;
 
         if (const char* pathEnv = getenv("PATH")) {
@@ -30,19 +29,12 @@ namespace shell {
                 if (std::filesystem::exists(candidate) &&
                     std::filesystem::is_regular_file(candidate) &&
                     access(candidate.c_str(), X_OK) == 0) {
-                    if (cmd=="cat" || cmd=="ls") {
-                        const std::string command = cmd + ' ' += args;
 
-                        std::array<char, 256> buffer{};
-                        FILE* pipe = popen(command.c_str(), "r");
+                    std::array<char, 256> buffer{};
+                    FILE* pipe = popen(input.c_str(), "r");
 
-                        while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-                            output << buffer.data();
-                        }
-                        pclose(pipe);
-                    }
-                    else {
-                        output << run_exec_with_args(cmd, args);
+                    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+                        std::cout << buffer.data();
                     }
                     foundAny = true;
                     break;
@@ -53,12 +45,12 @@ namespace shell {
         if (!foundAny) {
             std::cout << cmd << ": command not found\n";
         }
-
-        return output.str();
     }
 
-    std::string type(const std::unordered_map<std::string, std::function<std::string(const std::string&)>>& cmds, const std::string& cmd) {
-        std::stringstream output;
+    std::pair<std::string, std::string> type(
+        const std::unordered_map<std::string, std::function<std::pair<std::string, std::string>(const std::string &)> >
+        &cmds, const std::string &cmd) {
+        std::stringstream output, error;
 
         if (cmds.contains(cmd)) {
             output << cmd << " is a shell builtin" << "\n";
@@ -83,81 +75,37 @@ namespace shell {
                 }
             }
 
-            if (!foundAny) std::cout << cmd << ": not found" << "\n";
+            if (!foundAny) error << cmd << ": not found" << "\n";
         }
 
-        return output.str();
+        return std::make_pair(output.str(), error.str());
     }
 
-    std::string pwd() {
-        std::stringstream output;
+    std::pair<std::string, std::string> pwd() {
+        std::stringstream output, error;
         output << std::filesystem::current_path().string() << "\n";
-        return output.str();
+        return std::make_pair(output.str(), error.str());
     }
 
-    std::string cd(const std::string& path) {
-        const std::stringstream output;
+    std::pair<std::string, std::string> cd(const std::string &path) {
+        std::stringstream output, error;
 
         if (path == "~") {
             if (const char* pathEnv = getenv("HOME"); pathEnv != nullptr) {
                 std::filesystem::current_path(pathEnv);
             }
             else {
-                std::cout << "cd: " << path << ": No such file or directory\n";
+                error << "cd: " << path << ": No such file or directory\n";
             }
         }
         else if (std::filesystem::exists(path)) {
             std::filesystem::current_path(path);
         }
         else {
-            std::cout << "cd: " << path << ": No such file or directory\n";
+            error << "cd: " << path << ": No such file or directory\n";
         }
 
-        return output.str();
-    }
-
-
-    std::string run_exec_with_args(const std::string& path, const std::string& args) {
-        std::stringstream output;
-
-        int fds[2];
-        pipe(fds);
-
-        const pid_t pid = fork();
-
-        if (pid == 0) {
-            close(fds[0]);
-            dup2(fds[1], STDOUT_FILENO);
-            dup2(fds[1], STDERR_FILENO);
-            close(fds[1]);
-
-            std::vector<std::string> parts;
-            for (auto part_view : std::views::split(args, ' ')) {
-                parts.emplace_back(part_view.begin(), part_view.end());
-            }
-
-            std::vector<char*> argv;
-            argv.push_back(const_cast<char*>(path.c_str()));
-            for (auto& p : parts) argv.push_back(const_cast<char*>(p.c_str()));
-            argv.push_back(nullptr);
-
-            execvp(path.c_str(), argv.data());
-            _exit(127);
-        }
-
-        close(fds[1]);
-
-        char buffer[256];
-        ssize_t n;
-
-        while ((n = read(fds[0], buffer, sizeof(buffer))) > 0) {
-            output.write(buffer, n);
-        }
-
-        close(fds[0]);
-        waitpid(pid, nullptr, 0);
-
-        return output.str();
+        return std::make_pair(output.str(), error.str());
     }
 
     void writeOrCreateFile(const std::string& filePath, const std::string& content) {

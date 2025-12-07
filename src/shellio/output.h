@@ -27,13 +27,12 @@
 
 
 namespace shell{
-    std::string echo(const std::string& args);
-    std::string not_found(const std::string& cmd, const std::string& args);
-    std::string type(const std::unordered_map<std::string, std::function<std::string(const std::string&)>>& cmds, const std::string& cmd);
-    std::string pwd();
-    std::string cd(const std::string& path);
+    std::pair<std::string, std::string> echo(const std::string& args);
+    std::pair<std::string, std::string> type(const std::unordered_map<std::string, std::function<std::pair<std::string, std::string>(const std::string&)>>& cmds, const std::string& cmd);
+    std::pair<std::string, std::string> pwd();
+    std::pair<std::string, std::string> cd(const std::string& path);
+    void not_found(const std::string& cmd, const std::string& input);
 
-    std::string run_exec_with_args(const std::string& path, const std::string& args);
     void writeOrCreateFile(const std::string& filePath, const std::string& content);
     void print(const std::string& content);
 } // shell
