@@ -10,11 +10,14 @@
  #include "output.h"
 
 namespace shell {
-    void echo(const std::string& args) {
-        std::cout << args << "\n";
+    std::string echo(const std::string& args) {
+        std::stringstream output;
+        output << args << "\n";
+        return output.str();
     }
 
-    void not_found(const std::string& cmd, const std::string& args) {
+    std::string not_found(const std::string& cmd, const std::string& args) {
+        std::stringstream output;
         bool foundAny = false;
 
         if (const char* pathEnv = getenv("PATH")) {
@@ -27,19 +30,19 @@ namespace shell {
                 if (std::filesystem::exists(candidate) &&
                     std::filesystem::is_regular_file(candidate) &&
                     access(candidate.c_str(), X_OK) == 0) {
-                    if (cmd=="cat") {
-                        const std::string command = cmd + args;
+                    if (cmd=="cat" || cmd=="ls") {
+                        const std::string command = cmd + ' ' += args;
 
                         std::array<char, 256> buffer{};
                         FILE* pipe = popen(command.c_str(), "r");
 
                         while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-                            std::cout << buffer.data();
+                            output << buffer.data();
                         }
                         pclose(pipe);
                     }
                     else {
-                        run_exec_with_args(cmd, args);
+                        output << run_exec_with_args(cmd, args);
                     }
                     foundAny = true;
                     break;
@@ -50,11 +53,15 @@ namespace shell {
         if (!foundAny) {
             std::cout << cmd << ": command not found\n";
         }
+
+        return output.str();
     }
 
-    void type(const std::unordered_map<std::string, std::function<void(const std::string&)>>& cmds, const std::string& cmd) {
+    std::string type(const std::unordered_map<std::string, std::function<std::string(const std::string&)>>& cmds, const std::string& cmd) {
+        std::stringstream output;
+
         if (cmds.contains(cmd)) {
-            std::cout << cmd << " is a shell builtin" << "\n";
+            output << cmd << " is a shell builtin" << "\n";
         }
         else {
             bool foundAny = false;
@@ -68,7 +75,7 @@ namespace shell {
 
                     if (std::filesystem::exists(candidate) && std::filesystem::is_regular_file(candidate)) {
                         if (access(candidate.c_str(), X_OK) == 0) {
-                            std::cout << cmd << " is " << candidate.string() << "\n";
+                            output << cmd << " is " << candidate.string() << "\n";
                             foundAny = true;
                             break;
                         }
@@ -78,13 +85,19 @@ namespace shell {
 
             if (!foundAny) std::cout << cmd << ": not found" << "\n";
         }
+
+        return output.str();
     }
 
-    void pwd() {
-        std::cout << std::filesystem::current_path().string() << "\n";
+    std::string pwd() {
+        std::stringstream output;
+        output << std::filesystem::current_path().string() << "\n";
+        return output.str();
     }
 
-    void cd(const std::string& path) {
+    std::string cd(const std::string& path) {
+        const std::stringstream output;
+
         if (path == "~") {
             if (const char* pathEnv = getenv("HOME"); pathEnv != nullptr) {
                 std::filesystem::current_path(pathEnv);
@@ -99,10 +112,14 @@ namespace shell {
         else {
             std::cout << "cd: " << path << ": No such file or directory\n";
         }
+
+        return output.str();
     }
 
 
-    void run_exec_with_args(const std::string& path, const std::string& args) {
+    std::string run_exec_with_args(const std::string& path, const std::string& args) {
+        std::stringstream output;
+
         int fds[2];
         pipe(fds);
 
@@ -134,10 +151,22 @@ namespace shell {
         ssize_t n;
 
         while ((n = read(fds[0], buffer, sizeof(buffer))) > 0) {
-            std::cout.write(buffer, n);
+            output.write(buffer, n);
         }
 
         close(fds[0]);
         waitpid(pid, nullptr, 0);
+
+        return output.str();
+    }
+
+    void writeOrCreateFile(const std::string& filePath, const std::string& content) {
+        std::ofstream outFile(filePath, std::ios::out | std::ios::trunc);
+        outFile << content;
+        outFile.close();
+    }
+
+    void print(const std::string& content) {
+        std::cout << content;
     }
 } // shell

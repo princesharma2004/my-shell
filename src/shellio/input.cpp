@@ -10,15 +10,32 @@
  #include "input.h"
 
 namespace shell {
-    std::pair<std::string, std::string> read_input() {
-        std::string command;
+    std::tuple<std::string, std::string, std::string> read_input() {
+        std::string command, file;
 
         std::cout << "$ ";
         std::getline(std::cin, command);
 
         const auto& [cmd, argsStart] = clean_cmd(command);
         std::string args = (argsStart+1<command.size())? command.substr(argsStart + 1): "";
-        return std::make_pair(cmd, args);
+
+        if (size_t pos; (pos = args.find("1>")) != std::string::npos) {
+            file = args.substr(pos + 2);
+            if (!file.empty() && file[0] == ' ') {
+                file.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
+        else if ((pos = args.find('>')) != std::string::npos) {
+            file = args.substr(pos + 1);
+            if (!file.empty() && file[0] == ' ') {
+                file.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
+        return {cmd, args, file};
     }
 
     std::string clean_args(const std::string& input) {
