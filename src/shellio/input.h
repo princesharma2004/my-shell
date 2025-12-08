@@ -19,7 +19,7 @@
 namespace shell {
     std::string read_input();
 
-    std::tuple<std::string, std::string, std::string, std::string> break_input(const std::string& input);
+    std::tuple<std::string, std::string, std::string, std::string, bool, bool> break_input(const std::string& input);
     std::string clean_args(const std::string& input);
     std::pair<std::string, int> clean_cmd(const std::string& input);
 } // shell

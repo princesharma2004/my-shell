@@ -34,6 +34,7 @@ namespace shell{
     void not_found(const std::string& cmd, const std::string& input);
 
     void writeOrCreateFile(const std::string& filePath, const std::string& content);
+    void appendOrCreateToFile(const std::string& filePath, const std::string& content);
     void print(const std::string& content);
 } // shell
 

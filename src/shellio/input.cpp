@@ -19,11 +19,32 @@ namespace shell {
         return command;
     }
 
-    std::tuple<std::string, std::string, std::string, std::string> break_input(const std::string& input) {
+    std::tuple<std::string, std::string, std::string, std::string, bool, bool> break_input(const std::string& input) {
+        bool outputAppend=false, errorAppend=false;
         std::string outputFile, errorFile;
 
         const auto& [cmd, argsStart] = clean_cmd(input);
         std::string args = (argsStart+1<input.size())? input.substr(argsStart + 1): "";
+
+        if (size_t pos; (pos = args.find("2>>")) != std::string::npos) {
+            errorAppend = true;
+            errorFile = args.substr(pos + 3);
+            if (!errorFile.empty() && errorFile[0] == ' ') {
+                errorFile.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
+
+        if (size_t pos; (pos = args.find("1>>")) != std::string::npos) {
+            outputAppend = true;
+            outputFile = args.substr(pos + 3);
+            if (!outputFile.empty() && outputFile[0] == ' ') {
+                outputFile.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
 
         if (size_t pos; (pos = args.find("2>")) != std::string::npos) {
             errorFile = args.substr(pos + 2);
@@ -43,6 +64,16 @@ namespace shell {
             args = args.substr(0, pos);
         }
 
+        if (size_t pos; (pos = args.find(">>")) != std::string::npos) {
+            outputAppend = true;
+            outputFile = args.substr(pos + 1);
+            if (!outputFile.empty() && outputFile[0] == ' ') {
+                outputFile.erase(0, 1);
+            }
+
+            args = args.substr(0, pos);
+        }
+
         if (size_t pos; (pos = args.find('>')) != std::string::npos) {
             outputFile = args.substr(pos + 1);
             if (!outputFile.empty() && outputFile[0] == ' ') {
@@ -51,7 +82,7 @@ namespace shell {
 
             args = args.substr(0, pos);
         }
-        return {cmd, args, outputFile, errorFile};
+        return {cmd, args, outputFile, errorFile, outputAppend, errorAppend};
     }
 
     std::string clean_args(const std::string& input) {

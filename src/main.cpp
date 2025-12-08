@@ -17,7 +17,7 @@ int main() {
 
   while (true) {
     std::string input = shell::read_input();
-    auto [cmd, args, outputFile, errorFile] = std::move(shell::break_input(input));
+    auto [cmd, args, outputFile, errorFile, outputAppend, errorAppend] = std::move(shell::break_input(input));
 
     if (cmd=="exit") break;
 
@@ -27,13 +27,23 @@ int main() {
       if (outputFile.empty()) {
         shell::print(output);
       } else {
-        shell::writeOrCreateFile(outputFile, output);
+        if (outputAppend) {
+          shell::appendOrCreateToFile(outputFile, output);
+        }
+        else {
+          shell::writeOrCreateFile(outputFile, output);
+        }
       }
 
       if (errorFile.empty()) {
         shell::print(error);
       } else {
-        shell::writeOrCreateFile(errorFile, error);
+        if (errorAppend) {
+          shell::appendOrCreateToFile(errorFile, error);
+        }
+        else {
+          shell::writeOrCreateFile(errorFile, error);
+        }
       }
     } else {
       shell::not_found(cmd, input);

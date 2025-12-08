@@ -114,6 +114,12 @@ namespace shell {
         outFile.close();
     }
 
+    void appendOrCreateToFile(const std::string& filePath, const std::string& content) {
+        std::ofstream outFile(filePath, std::ios::out | std::ios::app);
+        outFile << content;
+        outFile.close();
+    }
+
     void print(const std::string& content) {
         std::cout << content;
     }
