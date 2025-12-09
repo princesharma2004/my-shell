@@ -14,6 +14,8 @@ add_executable(shell ${SOURCE_FILES}
         src/shellio/output.cpp
         src/shellio/output.h
         src/shellio.h
+        src/shellio/autocomplete.cpp
+        src/shellio/autocomplete.h
 )
 
 target_link_libraries(shell PRIVATE readline)
