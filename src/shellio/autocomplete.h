@@ -16,6 +16,7 @@
 #include <functional>
 #include <algorithm>
 #include <ranges>
+#include <vector>
 
 namespace  autocomplete {
     struct TrieNode {
